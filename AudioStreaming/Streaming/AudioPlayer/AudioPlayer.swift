@@ -313,7 +313,34 @@ open class AudioPlayer {
             startPlayer(resetBuffers: false)
         }
     }
+    
+    /// Goes to the next song when there is a playlist playing
+    public func next() {
+        guard let playingEntry = playerContext.audioPlayingEntry else {
+            return
+        }
+        seek(to: playingEntry.duration())
+        resume()
+    }
+    
+    /// Goes to the specified previous song
+    /// - Parameter url: the `URL` for the previously played song
+    public func prev(url: URL) {
+        let previousEntry = entryProvider.provideAudioEntry(url: url, headers: [:])
+        previousEntry.delegate = self
 
+        checkRenderWaitingAndNotifyIfNeeded()
+        serializationQueue.sync {
+            if let playingEntry = playerContext.audioPlayingEntry,
+               let url = URL(string: playingEntry.id.id) {
+                let currentEntry = entryProvider.provideAudioEntry(url: url)
+                entriesQueue.skip(item: currentEntry, type: .upcoming)
+            }
+            entriesQueue.skip(item: previousEntry, type: .upcoming)
+            next()
+        }
+    }
+    
     /// Seeks the audio to the specified time.
     /// - Parameter time: A `Double` value specifying the time of the requested seek in seconds
     public func seek(to time: Double) {
