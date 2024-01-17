@@ -341,6 +341,19 @@ open class AudioPlayer {
         }
     }
     
+    /// Clears the playlist that is currently enqueued
+    public func clear() {
+        guard !entriesQueue.isEmpty else {
+            return
+        }
+        
+        checkRenderWaitingAndNotifyIfNeeded()
+        serializationQueue.sync {
+            entriesQueue.removeAll()
+            next() // this is to finish playing the current song
+        }
+    }
+    
     /// Seeks the audio to the specified time.
     /// - Parameter time: A `Double` value specifying the time of the requested seek in seconds
     public func seek(to time: Double) {

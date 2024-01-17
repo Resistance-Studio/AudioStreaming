@@ -167,7 +167,10 @@ final class AudioPlayerRenderProcessor: NSObject {
 
                 rendererContext.lock.lock()
                 bufferContext.frameStartIndex = (bufferContext.frameStartIndex + totalFramesCopied) % bufferContext.totalFrameCount
-                bufferContext.frameUsedCount -= totalFramesCopied
+                // there was a bug that sometimes after playing many songs, seeking, enqueuing, etc `frameUsedCount` was 0 and `totalFrameCopied` was not 0 causing a buffer overflow.
+                if (bufferContext.frameUsedCount - totalFramesCopied >= 0) {
+                    bufferContext.frameUsedCount -= totalFramesCopied
+                }
                 rendererContext.lock.unlock()
             }
             if playerContext.internalState != .playing {
