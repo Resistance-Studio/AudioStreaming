@@ -334,6 +334,7 @@ open class AudioPlayer {
             if let playingEntry = playerContext.audioPlayingEntry,
                let url = URL(string: playingEntry.id.id) {
                 let currentEntry = entryProvider.provideAudioEntry(url: url)
+                currentEntry.delegate = self
                 entriesQueue.skip(item: currentEntry, type: .upcoming)
             }
             entriesQueue.skip(item: previousEntry, type: .upcoming)
