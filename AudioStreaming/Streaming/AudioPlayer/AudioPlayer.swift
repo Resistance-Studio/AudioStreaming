@@ -328,17 +328,22 @@ open class AudioPlayer {
     public func prev(url: URL) {
         let previousEntry = entryProvider.provideAudioEntry(url: url, headers: [:])
         previousEntry.delegate = self
-
+        resume() // If we are paused, unpause now so what is currently playing continues.
         checkRenderWaitingAndNotifyIfNeeded()
         serializationQueue.sync {
-            if let playingEntry = playerContext.audioPlayingEntry,
-               let url = URL(string: playingEntry.id.id) {
-                let currentEntry = entryProvider.provideAudioEntry(url: url)
-                currentEntry.delegate = self
-                entriesQueue.skip(item: currentEntry, type: .upcoming)
+            if let playingEntry = playerContext.audioPlayingEntry {
+                // Go to the end of the current song so we jump to the next one in the queue,
+                // which will be previousEntry
+                seek(to: playingEntry.duration())
+                // Whatever we are playing now should be queued to play again after the upcoming
+                // song (previousEntry) so we queue that first, as a new entry
+                if let url = URL(string: playingEntry.id.id) {
+                    let currentEntry = entryProvider.provideAudioEntry(url: url)
+                    currentEntry.delegate = self
+                    entriesQueue.skip(item: currentEntry, type: .upcoming)
+                }
             }
             entriesQueue.skip(item: previousEntry, type: .upcoming)
-            next()
         }
     }
     
