@@ -353,10 +353,13 @@ open class AudioPlayer {
             return
         }
         
+        resume()
         checkRenderWaitingAndNotifyIfNeeded()
         serializationQueue.sync {
             entriesQueue.removeAll()
-            next() // this is to finish playing the current song
+            if let playingEntry = playerContext.audioPlayingEntry {
+                seek(to: playingEntry.duration())
+            }
         }
     }
     
