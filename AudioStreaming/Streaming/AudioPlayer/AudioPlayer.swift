@@ -10,6 +10,7 @@ open class AudioPlayer {
     public weak var delegate: AudioPlayerDelegate?
     
     public var shouldRepeatSong: Bool = false
+    private var didPressNextOrPrev: Bool = false
 
     public var muted: Bool {
         get { playerContext.muted.value }
@@ -321,6 +322,7 @@ open class AudioPlayer {
         guard let playingEntry = playerContext.audioPlayingEntry else {
             return
         }
+        didPressNextOrPrev = true
         seek(to: playingEntry.duration())
         resume()
     }
@@ -328,10 +330,7 @@ open class AudioPlayer {
     /// Goes to the specified previous song
     /// - Parameter url: the `URL` for the previously played song
     public func prev(url: URL) {
-        guard !shouldRepeatSong else {
-            seek(to: 0)
-            return
-        }
+        didPressNextOrPrev = true
         
         let previousEntry = entryProvider.provideAudioEntry(url: url, headers: [:])
         previousEntry.delegate = self
@@ -493,10 +492,11 @@ open class AudioPlayer {
         playerRenderProcessor.audioFinishedPlaying = { [weak self] entry in
             guard let self = self else { return }
             
-            if shouldRepeatSong {
+            if shouldRepeatSong && !didPressNextOrPrev {
                 self.seek(to: 0)
                 return
             }
+            didPressNextOrPrev = false
             
             self.serializationQueue.sync {
                 let nextEntry = self.entriesQueue.dequeue(type: .buffering)
@@ -637,7 +637,7 @@ open class AudioPlayer {
                 setCurrentReading(entry: playingEntry, startPlaying: true, shouldClearQueue: false)
             }
 
-        } else if playerContext.audioReadingEntry == nil && !shouldRepeatSong { // When it finishes playing the current entry
+        } else if playerContext.audioReadingEntry == nil && (!shouldRepeatSong || didPressNextOrPrev) { // When it finishes playing the current entry by itself, or pressed Next or Prev
             if entriesQueue.count(for: .upcoming) > 0 {
                 let entry = entriesQueue.dequeue(type: .upcoming)
                 let shouldStartPlaying = playerContext.audioPlayingEntry == nil
